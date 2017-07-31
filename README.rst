@@ -22,7 +22,7 @@ Example
 
     # Create the scheduler and attach a stream
     rtp_scheduler = aiortp.RTPScheduler()
-    rtp = rtp_scheduler.create_new_stream(None, (local_ip, 49709))
+    rtp = rtp_scheduler.create_new_stream((local_ip, 49709))
 
     # Get the SDP and send an invite off
     payload = rtp.describe()

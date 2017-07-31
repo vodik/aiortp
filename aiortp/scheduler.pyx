@@ -87,8 +87,7 @@ class RTPScheduler:
         self._stopping = None
         self._lock = threading.Lock()
 
-    def create_new_stream(self, source_facotry, local_addr, *, ptime=20,
-                          loop=None):
+    def create_new_stream(self, local_addr, *, ptime=20, loop=None):
         return RTPStream(self, local_addr, ptime=ptime, loop=loop)
 
     def add(self, transport, source):
