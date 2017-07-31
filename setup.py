@@ -12,7 +12,7 @@ except ImportError:
 
 
 cmdclass = {}
-long_description=open('README.md', encoding='utf-8').read()
+long_description=open('README.rst', encoding='utf-8').read()
 
 
 if USE_CYTHON:
