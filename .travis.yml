@@ -14,7 +14,7 @@ addons:
 install:
   - pip install cython
   - pip install pysndfile
-  - pip install pytest hypothesis
+  - pip install --upgrade pytest hypothesis
 #   - pip install flake8 flake8-docstrings>=0.2.7 flake8-import-order>=0.9
 
 before_script:
