@@ -19,6 +19,15 @@ def parse_rtp(data):
             'payload': data[rtphdr.size:]}
 
 
+def parse_rtpevent(data):
+    event = rtpevent.unpack(data[:rtpevent.size])
+    return {'event_id': (event[0] >> 1),
+            'end_of_event': event[0] & 0x1,
+            'reserved': (event[1] >> 7),
+            'volume': event[1] & 0x7f,
+            'duration': event[2]}
+
+
 def pack_rtp(data):
     header = rtphdr.pack((data['version'] & 0x3) << 14
                           | (data['padding'] & 0x1) << 13
@@ -30,3 +39,11 @@ def pack_rtp(data):
                           data['timestamp'],
                           data['ssrc'])
     return b''.join([header, data['payload']])
+
+
+def pack_rtpevent(data):
+    return rtpevent.pack(data['event_id'] << 1
+                         | data['end_of_event'] & 0x1,
+                         (data['reserved'] & 0x1) << 7
+                         | data['volume'],
+                         data['duration'])
