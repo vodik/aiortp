@@ -40,6 +40,10 @@ setup(
     url='https://github.com/vodik/aiortp',
     description='RTP support for AsyncIO',
     long_description=long_description,
+    install_requires=[
+        'numpy',
+        'pysndfile',
+    ],
     cmdclass = cmdclass,
     ext_modules=ext_modules,
     classifiers=[
