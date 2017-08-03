@@ -12,3 +12,13 @@ def test_rtp_decode_inverts_encode(pkt):
 @given(binary(min_size=rtpevent.size, max_size=rtpevent.size))
 def test_rtpevent_decode_inverts_encode(pkt):
     assert pack_rtpevent(parse_rtpevent(pkt)) == pkt
+
+
+@given(binary(min_size=rtphdr.size + rtpevent.size,
+              max_size=rtphdr.size + rtpevent.size))
+def test_rtp_and_rtpevent_decode_inverts_encode(pkt):
+    rtp = parse_rtp(pkt)
+    rtpevent = parse_rtpevent(rtp.pop('payload'))
+
+    rtp['payload'] = pack_rtpevent(rtpevent)
+    assert pack_rtp(rtp) == pkt
