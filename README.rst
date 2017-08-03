@@ -2,6 +2,9 @@
 aiortp
 ======
 
+.. image:: https://travis-ci.org/vodik/aiortp.svg?branch=master
+    :target: https://travis-ci.org/vodik/aiortp
+
 Very, very pre-alpha software. Buyer beware!
 
 RTP and basic SDP support for AsyncIO written in pure Python/Cython.
