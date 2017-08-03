@@ -1,0 +1,25 @@
+language: python
+dist: precise
+python:
+  - 3.4
+  - 3.5
+  - 3.6
+
+addons:
+  apt:
+    packages:
+      - gcc
+      - libsndfile-dev
+
+install:
+  - pip install cython
+  - pip install pysndfile
+  - pip install pytest hypothesis
+#   - pip install flake8 flake8-docstrings>=0.2.7 flake8-import-order>=0.9
+
+before_script:
+  - python setup.py build_ext --inplace
+  # - flake8 aiortp
+
+script:
+  - python -m pytest tests/
