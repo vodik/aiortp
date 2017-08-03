@@ -30,14 +30,14 @@ def parse_rtpevent(data):
 
 def pack_rtp(data):
     header = rtphdr.pack((data['version'] & 0x3) << 14
-                          | (data['padding'] & 0x1) << 13
-                          | (data['ext'] & 0x1) << 12
-                          | (data['csrc.items'] & 0xF) << 8
-                          | (data['marker'] & 0x1) << 7
-                          | (data['p_type'] & 0x7f),
-                          data['seq'],
-                          data['timestamp'],
-                          data['ssrc'])
+                         | (data['padding'] & 0x1) << 13
+                         | (data['ext'] & 0x1) << 12
+                         | (data['csrc.items'] & 0xF) << 8
+                         | (data['marker'] & 0x1) << 7
+                         | (data['p_type'] & 0x7f),
+                         data['seq'],
+                         data['timestamp'],
+                         data['ssrc'])
     return b''.join([header, data['payload']])
 
 

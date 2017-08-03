@@ -55,15 +55,12 @@ class RTPSource:
         if not self.media:
             self.stopped = True
             if self.loop and self.future:
-                print('SET THIS FUTURE')
                 self.loop.call_soon_threadsafe(self.future.set_result, True)
 
         return chunk
 
     def stop(self):
-        print("STOPPING")
         if self.loop and self.future:
-            print('CANCLE THIS FUTURE')
             self.loop.call_soon_threadsafe(self.future.cancel)
         self.stopped = True
 
@@ -92,11 +89,9 @@ class RTPScheduler:
 
     def add(self, transport, source):
         with self._lock:
-            print("ADDING SOURCE!")
             self.streams[transport] = source
 
         if not self._thread:
-            print("ATTEMPTING TO LAUNCH THREAD")
             self._thread = threading.Thread(target=self._run)
             self._thread.daemon = True
             self._stop = threading.Event()
@@ -106,10 +101,8 @@ class RTPScheduler:
             self._ready.wait()
 
     def _stop_thread(self):
-        print("STOPPING THREAD...")
         self._stop.set()
         self._stopping.wait()
-        print("STOPPED...")
 
         # cleanup thread
         self._thread = None
@@ -141,7 +134,6 @@ class RTPScheduler:
     def _run(self):
         clock = self.clock()
         self._ready.set()
-        print("LOOP STARTED")
         while not self._stop.is_set():
             clock.forward(self.interval * 1_000_000)
 
