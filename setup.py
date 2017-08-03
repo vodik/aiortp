@@ -17,14 +17,16 @@ long_description=open('README.rst', encoding='utf-8').read()
 
 if USE_CYTHON:
     ext_modules = [
-        Extension("aiortp.clock.posix", ["aiortp/clock/posix.pyx"]),
+        Extension("aiortp.clock.posix", ["aiortp/clock/posix.pyx"],
+                  libraries=["rt"]),
         Extension("aiortp.packet", ["aiortp/packet.pyx"]),
         Extension("aiortp.scheduler", ["aiortp/scheduler.pyx"]),
     ]
     cmdclass['build_ext'] = build_ext
 else:
     ext_modules = [
-        Extension("aiortp.clock.posix", ["aiortp/clock/linux.c"]),
+        Extension("aiortp.clock.posix", ["aiortp/clock/linux.c"],
+                  libraries=["rt"]),
         Extension("aiortp.packet", ["aiortp/packet.c"]),
         Extension("aiortp.scheduler", ["aiortp/scheduler.c"]),
     ]
