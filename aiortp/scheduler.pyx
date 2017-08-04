@@ -85,8 +85,10 @@ class DTMF:
                     self.loop.call_soon_threadsafe(self.future.set_result, True)
                 raise StopIteration()
 
+        # Last three rtpevent messages should be marked as the end of event
+        end = bool(self.cur_length + 60 >= self.tone_length)
         event = pack_rtpevent({'event_id': self.current,
-                               'end_of_event': 0,
+                               'end_of_event': end,
                                'reserved': 0,
                                'volume': 10,
                                'duration': self.cur_length * 8})
