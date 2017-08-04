@@ -55,7 +55,6 @@ class DTMF:
         self.seq_iter = iter(self.sequence)
         self.current = next(self.seq_iter)
         self.cur_length = 0
-        # self.marked = True  TODO
 
         self.loop = loop
         self.future = future
@@ -66,6 +65,7 @@ class DTMF:
         self.timestamp = 20
         self.seq = 49710
         self.ssrc = 167411978
+        self.marked = True
 
     def __iter__(self):
         return self
@@ -74,11 +74,15 @@ class DTMF:
         if self.stopped:
             raise StopIteration()
 
+        if self.marked and self.cur_length:
+            self.marked = False
+
         # If we're off the end of the previous dtmf packet, get a new one
         if self.cur_length > self.tone_length:
             self.cur_length = 0
             try:
                 self.current = next(self.seq_iter)
+                self.marked = True
             except StopIteration:
                 self.stopped = True
                 if self.loop and self.future:
@@ -116,6 +120,7 @@ class AudioFile:
         self.timestamp = 20
         self.seq = 49709
         self.ssrc = 167411976
+        self.marked = False
 
     def __iter__(self):
         return self
@@ -224,7 +229,7 @@ class RTPScheduler:
                         'padding': 0,
                         'ext': 0,
                         'csrc.items': 0,
-                        'marker': 0,
+                        'marker': source.marked,
                         'p_type': source.format,
                         'seq': source.seq,
                         'timestamp': source.timestamp,
