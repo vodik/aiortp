@@ -212,7 +212,11 @@ class RTPScheduler:
 
             with self._lock:
                 for transport, source in self.streams.items():
-                    payload = next(source)
+                    try:
+                        payload = next(source)
+                    except StopIteration:
+                        continue
+
                     transport.sendto(pack_rtp({
                         'version': 2,
                         'padding': 0,
