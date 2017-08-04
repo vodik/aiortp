@@ -66,6 +66,7 @@ class DTMF:
         self.seq = 49710
         self.ssrc = 167411978
         self.marked = True
+        self.deal_with_technical_debt = True
 
     def __iter__(self):
         return self
@@ -79,6 +80,7 @@ class DTMF:
 
         # If we're off the end of the previous dtmf packet, get a new one
         if self.cur_length > self.tone_length:
+            self.timestamp += 20  # self.tone_length - 60
             self.cur_length = 0
             try:
                 self.current = next(self.seq_iter)
@@ -87,7 +89,7 @@ class DTMF:
                 self.stopped = True
                 if self.loop and self.future:
                     self.loop.call_soon_threadsafe(self.future.set_result, True)
-                raise StopIteration()
+                raise
 
         # Last three rtpevent messages should be marked as the end of event
         end = bool(self.cur_length + 60 >= self.tone_length)
@@ -121,6 +123,7 @@ class AudioFile:
         self.seq = 49709
         self.ssrc = 167411976
         self.marked = False
+        self.deal_with_technical_debt = False
 
     def __iter__(self):
         return self
@@ -238,7 +241,8 @@ class RTPScheduler:
                     }))
 
                     source.seq += 1
-                    source.timestamp += source.timeframe
+                    if not source.deal_with_technical_debt:
+                        source.timestamp += source.timeframe
 
                 self.streams = {k: v for k, v in self.streams.items()
                                 if not v.stopped}
