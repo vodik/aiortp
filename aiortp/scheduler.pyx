@@ -8,7 +8,28 @@ import re
 import threading
 
 from .clock import PosixClock
-from .packet import pack_rtp
+from .packet import pack_rtp, pack_rtpevent
+
+
+DTMF_MAP = {
+    '0': 0,
+    '1': 1,
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    '*': 10,
+    '#': 11,
+    'A': 12,
+    'B': 13,
+    'C': 14,
+    'D': 15,
+    '⚡': 16
+}
 
 
 class RTP(asyncio.DatagramProtocol):
@@ -26,7 +47,67 @@ class RTP(asyncio.DatagramProtocol):
         self.data.extend(data)
 
 
-class RTPSource:
+class DTMF:
+    def __init__(self, sequence, *, tone_length=None, loop=None, future=None):
+        self.sequence = [DTMF_MAP[x] for x in sequence]
+        self.tone_length = tone_length or 200
+
+        self.seq_iter = iter(self.sequence)
+        self.current = next(self.seq_iter)
+        self.cur_length = 0
+
+        self.loop = loop
+        self.future = future
+
+        self.format = 101
+        self.timeframe = 20
+        self.stopped = False
+        self.timestamp = 20
+        self.seq = 49710
+        self.ssrc = 167411978
+        self.marked = True
+        self.deal_with_technical_debt = True
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.stopped:
+            raise StopIteration()
+
+        if self.marked and self.cur_length:
+            self.marked = False
+
+        # If we're off the end of the previous dtmf packet, get a new one
+        if self.cur_length > self.tone_length:
+            self.timestamp += 20  # self.tone_length - 60
+            self.cur_length = 0
+            try:
+                self.current = next(self.seq_iter)
+                self.marked = True
+            except StopIteration:
+                self.stopped = True
+                if self.loop and self.future:
+                    self.loop.call_soon_threadsafe(self.future.set_result, True)
+                raise
+
+        # Last three rtpevent messages should be marked as the end of event
+        end = bool(self.cur_length + 60 >= self.tone_length)
+        event = pack_rtpevent({'event_id': self.current,
+                               'end_of_event': end,
+                               'reserved': 0,
+                               'volume': 10,
+                               'duration': self.cur_length * 8})
+        self.cur_length += 20
+        return event
+
+    def stop(self):
+        if self.loop and self.future:
+            self.loop.call_soon_threadsafe(self.future.cancel)
+        self.stopped = True
+
+
+class AudioFile:
     def __init__(self, filename, timeframe, *, loop=None, future=None):
         audio = pysndfile.PySndfile(filename)
         frames = audio.read_frames(dtype=np.int16)
@@ -41,6 +122,8 @@ class RTPSource:
         self.timestamp = 20
         self.seq = 49709
         self.ssrc = 167411976
+        self.marked = False
+        self.deal_with_technical_debt = False
 
     def __iter__(self):
         return self
@@ -139,13 +222,17 @@ class RTPScheduler:
 
             with self._lock:
                 for transport, source in self.streams.items():
-                    payload = next(source)
+                    try:
+                        payload = next(source)
+                    except StopIteration:
+                        continue
+
                     transport.sendto(pack_rtp({
                         'version': 2,
                         'padding': 0,
                         'ext': 0,
                         'csrc.items': 0,
-                        'marker': 0,
+                        'marker': source.marked,
                         'p_type': source.format,
                         'seq': source.seq,
                         'timestamp': source.timestamp,
@@ -154,7 +241,8 @@ class RTPScheduler:
                     }))
 
                     source.seq += 1
-                    source.timestamp += source.timeframe
+                    if not source.deal_with_technical_debt:
+                        source.timestamp += source.timeframe
 
                 self.streams = {k: v for k, v in self.streams.items()
                                 if not v.stopped}
@@ -209,8 +297,22 @@ class RTPStream:
 
         await protocol.ready
         self.future = self.loop.create_future()
-        source = RTPSource(filename, 8000 // 1000 * self.ptime,
+        source = AudioFile(filename, 8000 // 1000 * self.ptime,
                            loop=self.loop, future=self.future)
+        self.scheduler.add(self.transport, source)
+        return source
+
+    async def dial(self, sequence):
+        assert self.remote_addr
+        self.transport, protocol = await self.loop.create_datagram_endpoint(
+            lambda: RTP(self),
+            local_addr=self.local_addr,
+            remote_addr=self.remote_addr
+        )
+
+        await protocol.ready
+        self.future = self.loop.create_future()
+        source = DTMF(sequence, loop=self.loop, future=self.future)
         self.scheduler.add(self.transport, source)
         return source
 
