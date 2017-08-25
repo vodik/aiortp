@@ -118,10 +118,54 @@ class AudioFile:
 
         self.format = 0
         self.timeframe = timeframe
+
         self.stopped = False
         self.timestamp = 20
         self.seq = 49709
         self.ssrc = 167411976
+        self.marked = False
+        self.deal_with_technical_debt = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.stopped:
+            raise StopIteration()
+
+        chunk = self.media[:self.timeframe]
+        self.media = self.media[self.timeframe:]
+
+        if not self.media:
+            self.stopped = True
+            if self.loop and self.future:
+                self.loop.call_soon_threadsafe(self.future.set_result, True)
+
+        return chunk
+
+    def stop(self):
+        if self.loop and self.future:
+            self.loop.call_soon_threadsafe(self.future.cancel)
+        self.stopped = True
+
+
+class Tone:
+    def __init__(self, frequency, duration, timeframe, *,
+                 loop=None, future=None, sample_rate=8000, amplitude=10_000):
+        sample_times = np.arange(sample_rate * duration) / sample_rate
+        wave = amplitude * np.sin(2 * np.pi * frequency * sample_times)
+        samples = np.array(wave, dtype=np.int16)
+        self.media = audioop.lin2ulaw(samples.tobytes(), 2)
+
+        self.loop = loop
+        self.future = future
+
+        self.format = 0
+        self.timeframe = timeframe
+        self.stopped = False
+        self.timestamp = 0
+        self.seq = 39227
+        self.ssrc = 3491926
         self.marked = False
         self.deal_with_technical_debt = False
 
@@ -286,6 +330,21 @@ class RTPStream:
         m_header = re.search(r'm=audio (\d+) RTP/AVP', sdp)
         c_header = re.search(r'c=IN IP4 ([\d.]+)', sdp)
         self.remote_addr = c_header.group(1), int(m_header.group(1))
+
+    async def play_tone(self, frequency=650, duration=1.0, amplitude=5000):
+        assert self.remote_addr
+        self.transport, protocol = await self.loop.create_datagram_endpoint(
+            lambda: RTP(self),
+            local_addr=self.local_addr,
+            remote_addr=self.remote_addr
+        )
+
+        await protocol.ready
+        self.future = self.loop.create_future()
+        source = Tone(frequency, duration, 8000 // 1000 * self.ptime,
+                      amplitude=amplitude, loop=self.loop, future=self.future)
+        self.scheduler.add(self.transport, source)
+        return source
 
     async def start(self, filename):
         assert self.remote_addr
