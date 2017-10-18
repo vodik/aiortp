@@ -5,6 +5,9 @@ from setuptools.extension import Extension
 import sys
 
 
+macros = [('CYTHON_TRACE', '1')]
+
+
 try:
     from Cython.Distutils import build_ext
     USE_CYTHON = True
@@ -29,18 +32,22 @@ long_description=open('README.rst', encoding='utf-8').read()
 if USE_CYTHON:
     ext_modules = [
         Extension("aiortp.clock.posix", ["aiortp/clock/posix.pyx"],
-                  libraries=["rt"]),
-        Extension("aiortp.packet", ["aiortp/packet.pyx"]),
-        Extension("aiortp.scheduler", ["aiortp/scheduler.pyx"]),
+                  libraries=["rt"], define_macros=macros),
+        Extension("aiortp.packet", ["aiortp/packet.pyx"],
+                  define_macros=macros),
+        Extension("aiortp.scheduler", ["aiortp/scheduler.pyx"],
+                  define_macros=macros),
     ]
     cmdclass['build_ext'] = build_ext
     cmdclass['sdist'] = sdist
 else:
     ext_modules = [
         Extension("aiortp.clock.posix", ["aiortp/clock/posix.c"],
-                  libraries=["rt"]),
-        Extension("aiortp.packet", ["aiortp/packet.c"]),
-        Extension("aiortp.scheduler", ["aiortp/scheduler.c"]),
+                  libraries=["rt"], define_macros=macros),
+        Extension("aiortp.packet", ["aiortp/packet.c"],
+                  define_macros=macros),
+        Extension("aiortp.scheduler", ["aiortp/scheduler.c"],
+                  define_macros=macros),
     ]
 
 

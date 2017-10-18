@@ -1,3 +1,4 @@
+# cython: linetrace=True
 from posix.time cimport TIMER_ABSTIME, CLOCK_MONOTONIC
 from posix.time cimport clock_gettime, clock_nanosleep, timespec
 

@@ -1,4 +1,4 @@
-# cython: language_level=3, boundscheck=False
+# cython: language_level=3, boundscheck=False, linetrace=True
 import asyncio
 import audioop
 import numpy as np
