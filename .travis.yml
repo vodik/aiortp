@@ -1,7 +1,5 @@
 language: python
-dist: precise
 python:
-  - 3.4
   - 3.5
   - 3.6
 
@@ -14,7 +12,7 @@ addons:
 install:
   - pip install cython
   - pip install pysndfile
-  - pip install --upgrade pytest hypothesis
+  - pip install --upgrade pytest pytest-cov codecov hypothesis
 #   - pip install flake8 flake8-docstrings>=0.2.7 flake8-import-order>=0.9
 
 before_script:
@@ -22,4 +20,7 @@ before_script:
   # - flake8 aiortp
 
 script:
-  - python -m pytest tests/
+  - pytest --cov=aiortp --cov-report=term --cov-report=html --cov-append tests
+
+after_success:
+  - codecov
