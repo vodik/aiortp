@@ -5,7 +5,7 @@ import numpy as np
 
 class Tone:
     def __init__(self, frequency, duration, timeframe, *,
-                 loop=None, future=None, sample_rate=8000, amplitude=10_000):
+                 loop=None, future=None, sample_rate=8000, amplitude=10000):
         sample_times = np.arange(sample_rate * duration) / sample_rate
         wave = amplitude * np.sin(2 * np.pi * frequency * sample_times)
         samples = np.array(wave, dtype=np.int16)

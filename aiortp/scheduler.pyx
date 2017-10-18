@@ -168,15 +168,18 @@ class RTPStream:
         c_header = re.search(r'c=IN IP4 ([\d.]+)', sdp)
         self.remote_addr = c_header.group(1), int(m_header.group(1))
 
-    async def play_tone(self, frequency=650, duration=1.0, amplitude=5000):
+    async def _create_endpoint(self):
         assert self.remote_addr
-        self.transport, protocol = await self.loop.create_datagram_endpoint(
+        transport, protocol = await self.loop.create_datagram_endpoint(
             lambda: RTP(self),
             local_addr=self.local_addr,
             remote_addr=self.remote_addr
         )
-
         await protocol.ready
+        return transport
+
+    async def play_tone(self, frequency=650, duration=1.0, amplitude=5000):
+        self.transport = await self._create_endpoint()
         self.future = self.loop.create_future()
         source = Tone(frequency, duration, 8000 // 1000 * self.ptime,
                       amplitude=amplitude, loop=self.loop, future=self.future)
@@ -184,14 +187,7 @@ class RTPStream:
         return source
 
     async def start(self, filename):
-        assert self.remote_addr
-        self.transport, protocol = await self.loop.create_datagram_endpoint(
-            lambda: RTP(self),
-            local_addr=self.local_addr,
-            remote_addr=self.remote_addr
-        )
-
-        await protocol.ready
+        self.transport = await self._create_endpoint()
         self.future = self.loop.create_future()
         source = AudioFile(filename, 8000 // 1000 * self.ptime,
                            loop=self.loop, future=self.future)
@@ -199,14 +195,7 @@ class RTPStream:
         return source
 
     async def dial(self, sequence):
-        assert self.remote_addr
-        self.transport, protocol = await self.loop.create_datagram_endpoint(
-            lambda: RTP(self),
-            local_addr=self.local_addr,
-            remote_addr=self.remote_addr
-        )
-
-        await protocol.ready
+        self.transport = await self._create_endpoint()
         self.future = self.loop.create_future()
         source = DTMF(sequence, loop=self.loop, future=self.future)
         self.scheduler.add(self.transport, source)
