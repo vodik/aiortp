@@ -1,5 +1,6 @@
 import os
 from setuptools import setup, find_packages
+from setuptools.command.sdist import sdist as _sdist
 from setuptools.extension import Extension
 import sys
 
@@ -9,6 +10,16 @@ try:
     USE_CYTHON = True
 except ImportError:
     USE_CYTHON = False
+
+
+class sdist(_sdist):
+    def run(self):
+        # Make sure the compiled Cython files in the distribution are up-to-date
+        from Cython.Build import cythonize
+        cythonize(["aiortp/clock/posix.pyx",
+                   "aiortp/packet.pyx",
+                   "aiortp/scheduler.pyx"])
+        _sdist.run(self)
 
 
 cmdclass = {}
@@ -23,9 +34,10 @@ if USE_CYTHON:
         Extension("aiortp.scheduler", ["aiortp/scheduler.pyx"]),
     ]
     cmdclass['build_ext'] = build_ext
+    cmdclass['sdist'] = sdist
 else:
     ext_modules = [
-        Extension("aiortp.clock.posix", ["aiortp/clock/linux.c"],
+        Extension("aiortp.clock.posix", ["aiortp/clock/posix.c"],
                   libraries=["rt"]),
         Extension("aiortp.packet", ["aiortp/packet.c"]),
         Extension("aiortp.scheduler", ["aiortp/scheduler.c"]),

@@ -1,1 +1,1 @@
-recursive-include cython *
+recursive-include aiortp *.py *.pyx *.c
