@@ -178,26 +178,8 @@ class RTPStream:
         await protocol.ready
         return transport
 
-    async def play_tone(self, frequency=650, duration=1.0, amplitude=5000):
+    async def schedule(self, source):
         self.transport = await self._create_endpoint()
-        self.future = self.loop.create_future()
-        source = Tone(frequency, duration, 8000 // 1000 * self.ptime,
-                      amplitude=amplitude, loop=self.loop, future=self.future)
-        self.scheduler.add(self.transport, source)
-        return source
-
-    async def start(self, filename):
-        self.transport = await self._create_endpoint()
-        self.future = self.loop.create_future()
-        source = AudioFile(filename, 8000 // 1000 * self.ptime,
-                           loop=self.loop, future=self.future)
-        self.scheduler.add(self.transport, source)
-        return source
-
-    async def dial(self, sequence):
-        self.transport = await self._create_endpoint()
-        self.future = self.loop.create_future()
-        source = DTMF(sequence, loop=self.loop, future=self.future)
         self.scheduler.add(self.transport, source)
         return source
 
@@ -207,3 +189,30 @@ class RTPStream:
     def wait(self):
         assert self.future
         return self.future
+
+
+# async def play(self, remote_addr, filename):
+#     rtp_scheduler = aiortp.RTPScheduler()
+#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
+
+#     source = AudioSource(filename)
+#     await rtp_stream.schedule(source)
+#     await rtp_stream.wait()
+
+
+# async def dial(self, remote_addr, sequence):
+#     rtp_scheduler = aiortp.RTPScheduler()
+#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
+
+#     source = DTFMSource(filename)
+#     await rtp_stream.schedule(source)
+#     await rtp_stream.wait()
+
+
+# async def play_tone(self, frequency, amplitude, duration):
+#     rtp_scheduler = aiortp.RTPScheduler()
+#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
+
+#     source = DTFMSource(frequency, amplitude, duration)
+#     await rtp_stream.schedule(source)
+#     await rtp_stream.wait()
