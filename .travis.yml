@@ -9,6 +9,13 @@ addons:
       - gcc
       - libsndfile-dev
 
+cache:
+  directories:
+  - $HOME/.cache/pip
+
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+
 install:
   - pip install cython
   - pip install pysndfile
