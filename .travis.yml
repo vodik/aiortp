@@ -17,7 +17,7 @@ before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
 
 install:
-  - pip install cython
+  - pip install git+https://github.com/cython/cython@0.27.x#egg=cython
   - pip install pysndfile
   - pip install --upgrade pytest pytest-cov codecov hypothesis
 #   - pip install flake8 flake8-docstrings>=0.2.7 flake8-import-order>=0.9
