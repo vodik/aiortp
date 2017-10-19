@@ -28,6 +28,9 @@ class RTP(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         self.data.extend(data)
 
+    def error_received(self, exc):
+        print("Error received:", exc)
+
 
 class RTPTask:
     def __init__(self, transport, source, ptime):
@@ -146,22 +149,8 @@ class RTPStream:
         self.loop = loop or asyncio.get_event_loop()
 
     def describe(self):
-        local_addr_desc = f'IN IP4 {self.local_addr[0]}'
-        return '\r\n'.join([
-            'v=0',
-            f'o=user1 53655765 2353687637 {local_addr_desc}',
-            's=-',
-            't=0 0',
-            'i=aiortp media stream',
-            f'm=audio {self.local_addr[1]} RTP/AVP 0 101 13',
-            f'c={local_addr_desc}',
-            'a=rtpmap:0 PCMU/8000/1',
-            'a=rtpmap:101 telephone-event/8000',
-            'a=fmtp:101 0-15',
-            f'a=ptime:{self.ptime}',
-            'a=sendrecv',
-            '',
-        ])
+        from .sdp import SDP
+        return SDP(self.local_addr, self.ptime)
 
     def negotiate(self, sdp):
         m_header = re.search(r'm=audio (\d+) RTP/AVP', sdp)
