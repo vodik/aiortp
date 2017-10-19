@@ -181,7 +181,8 @@ class RTPStream:
         await protocol.ready
         return transport
 
-    async def schedule(self, source):
+    async def schedule(self, source, remote_addr):
+        self.remote_addr = remote_addr
         self.transport = await self._create_endpoint()
         self.scheduler.add(self.transport, source)
         return source
