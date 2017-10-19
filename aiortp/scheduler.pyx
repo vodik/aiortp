@@ -15,10 +15,10 @@ from .tone import Tone
 
 
 class RTP(asyncio.DatagramProtocol):
-    def __init__(self, stream):
+    def __init__(self, stream, *, loop=None):
         self.stream = stream
         self.data = bytearray()
-        self.ready = asyncio.Future()
+        self.ready = loop.create_future()
         self.transport = None
 
     def connection_made(self, transport):
@@ -171,7 +171,7 @@ class RTPStream:
     async def _create_endpoint(self):
         assert self.remote_addr
         transport, protocol = await self.loop.create_datagram_endpoint(
-            lambda: RTP(self),
+            lambda: RTP(self, loop=self.loop),
             local_addr=self.local_addr,
             remote_addr=self.remote_addr
         )
