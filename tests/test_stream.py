@@ -27,3 +27,6 @@ a=fmtp:101 0-15\r
 a=ptime:20\r
 a=sendrecv\r
 '''
+
+    rtp_server._stop_thread()
+    rtp_stream.transport.close()

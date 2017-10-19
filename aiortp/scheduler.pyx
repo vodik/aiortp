@@ -28,6 +28,9 @@ class RTP(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         self.data.extend(data)
 
+    def error_received(exc):
+        print("Error received:", exc)
+
 
 class RTPTask:
     def __init__(self, transport, source, ptime):
