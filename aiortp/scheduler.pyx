@@ -26,6 +26,7 @@ class RTP(asyncio.DatagramProtocol):
         self.ready.set_result(self.transport)
 
     def datagram_received(self, data, addr):
+        print("RECEIVING")
         self.data.extend(data)
 
     def error_received(self, exc):
@@ -99,6 +100,9 @@ class RTPScheduler:
             self._stop_thread()
 
     def _run(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+
         clock = self.clock()
         self._ready.set()
         while not self._stop.is_set():
@@ -109,8 +113,18 @@ class RTPScheduler:
                     try:
                         payload = next(source)
                     except StopIteration:
+                        print("STOP", id(source.future))
+
+                        def callback():
+                            print("IN CALLBACK...")
+                            source.future.set_result(None)
+
+                        assert self._loop == asyncio.get_event_loop()
+                        self._loop.call_soon_threadsafe(callback)
+                        print("DONE?", source.future.done())
                         continue
 
+                    print("SENDING...")
                     transport.sendto(pack_rtp({
                         'version': 2,
                         'padding': 0,
@@ -135,6 +149,7 @@ class RTPScheduler:
 
             clock.sleep()
 
+        print("AAAND STOPPING")
         self._stopping.set()
 
 
@@ -152,23 +167,27 @@ class RTPStream:
         from .sdp import SDP
         return SDP(self.local_addr, self.ptime)
 
-    def negotiate(self, sdp):
-        m_header = re.search(r'm=audio (\d+) RTP/AVP', sdp)
-        c_header = re.search(r'c=IN IP4 ([\d.]+)', sdp)
+    async def negotiate(self, sdp):
+        _sdp = str(sdp)
+        m_header = re.search(r'm=audio (\d+) RTP/AVP', _sdp)
+        c_header = re.search(r'c=IN IP4 ([\d.]+)', _sdp)
         self.remote_addr = c_header.group(1), int(m_header.group(1))
+        self.transport = await self._create_endpoint()
 
     async def _create_endpoint(self):
         assert self.remote_addr
-        transport, protocol = await self.loop.create_datagram_endpoint(
+        transport, self.protocol = await self.loop.create_datagram_endpoint(
             lambda: RTP(self, loop=self.loop),
             local_addr=self.local_addr,
             remote_addr=self.remote_addr
         )
-        await protocol.ready
+        await self.protocol.ready
         return transport
 
     async def schedule(self, source, remote_addr):
         self.remote_addr = remote_addr
+        self.future = source.future = self.loop.create_future()
+
         self.transport = await self._create_endpoint()
         self.scheduler.add(self.transport, source)
         return source
