@@ -13,7 +13,12 @@ async def test_dtmf_describe(rtp_server, loop):
 
     source = aiortp.dtmf.DTMF('12345')
     await rtp_stream.schedule(source, remote_addr=('127.0.0.1', 16384))
-    assert rtp_stream.describe() == '''v=0\r
+    description = rtp_stream.describe()
+
+    rtp_server._stop_thread()
+    rtp_stream.transport.close()
+
+    assert str(description) == '''v=0\r
 o=user1 53655765 2353687637 IN IP4 127.0.0.1\r
 s=-\r
 t=0 0\r
@@ -26,6 +31,3 @@ a=fmtp:101 0-15\r
 a=ptime:20\r
 a=sendrecv\r
 '''
-
-    rtp_server._stop_thread()
-    rtp_stream.transport.close()
