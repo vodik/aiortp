@@ -19,9 +19,7 @@ class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
-        cythonize(["aiortp/clock/posix.pyx",
-                   "aiortp/packet.pyx",
-                   "aiortp/scheduler.pyx"])
+        cythonize(["aiortp/packet.pyx"])
         _sdist.run(self)
 
 
@@ -31,22 +29,14 @@ long_description=open('README.rst', encoding='utf-8').read()
 
 if USE_CYTHON:
     ext_modules = [
-        Extension("aiortp.clock.posix", ["aiortp/clock/posix.pyx"],
-                  libraries=["rt"], define_macros=macros),
         Extension("aiortp.packet", ["aiortp/packet.pyx"],
-                  define_macros=macros),
-        Extension("aiortp.scheduler", ["aiortp/scheduler.pyx"],
                   define_macros=macros),
     ]
     cmdclass['build_ext'] = build_ext
     cmdclass['sdist'] = sdist
 else:
     ext_modules = [
-        Extension("aiortp.clock.posix", ["aiortp/clock/posix.c"],
-                  libraries=["rt"], define_macros=macros),
         Extension("aiortp.packet", ["aiortp/packet.c"],
-                  define_macros=macros),
-        Extension("aiortp.scheduler", ["aiortp/scheduler.c"],
                   define_macros=macros),
     ]
 
@@ -62,6 +52,7 @@ setup(
     description='RTP support for AsyncIO',
     long_description=long_description,
     install_requires=[
+        'aiotimer==0.1.0',
         'numpy',
         'pysndfile',
     ],

@@ -18,8 +18,7 @@ before_cache:
 
 install:
   - pip install cython
-  - pip install pysndfile
-  - pip install --upgrade pytest pytest-cov codecov hypothesis
+  - pip install --upgrade pytest pytest-cov codecov hypothesis -e .
 #   - pip install flake8 flake8-docstrings>=0.2.7 flake8-import-order>=0.9
 
 before_script:

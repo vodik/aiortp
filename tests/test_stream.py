@@ -21,7 +21,7 @@ async def test_dtmf_describe(rtp_server, loop):
     await rtp_stream_1.wait()
     print("DONE!")
 
-    rtp_server._stop_thread()
+    rtp_server._timer.close()
     rtp_stream_1.transport.close()
     rtp_stream_2.transport.close()
 
