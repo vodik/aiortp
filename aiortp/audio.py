@@ -32,7 +32,11 @@ class AudioFile:
 
         chunk = self.media[:self.timeframe]
         self.media = self.media[self.timeframe:]
-        return chunk
+
+        result = (self.marked, self.format, self.seq, self.timestamp,
+                  self.ssrc, chunk)
+        self.timestamp += self.timeframe
+        return result
 
     def stop(self):
         if self._loop and self._future:

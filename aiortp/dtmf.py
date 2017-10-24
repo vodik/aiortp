@@ -41,7 +41,6 @@ class DTMF:
         self.seq = 49710
         self.ssrc = 167411978
         self.marked = True
-        self.deal_with_technical_debt = True
 
     def __iter__(self):
         return self
@@ -68,7 +67,8 @@ class DTMF:
                                'volume': 10,
                                'duration': self.cur_length * 8})
         self.cur_length += 20
-        return event
+        return (self.marked, self.format, self.seq, self.timestamp,
+                self.ssrc, event)
 
     def stop(self):
         if self._loop and self._future:
