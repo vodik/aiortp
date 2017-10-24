@@ -80,12 +80,8 @@ class RTPScheduler:
 
     def unregister(self, transport):
         source = self.streams.pop(transport, None)
-
         if source:
             source.stop()
-
-        # if not self.streams and self._thread:
-        #     self._stop_thread()
 
     def stop(self):
         old_streams = self.streams
@@ -93,9 +89,6 @@ class RTPScheduler:
 
         for source in old_streams.values():
             source.stop()
-
-        # if self._thread:
-        #     self._stop_thread()
 
 
 class RTPStream:
@@ -105,7 +98,6 @@ class RTPStream:
         self.remote_addr = None
         self.stream = None
         self.ptime = ptime
-        self._future = None
         self._loop = loop or asyncio.get_event_loop()
 
     def describe(self):
@@ -131,13 +123,13 @@ class RTPStream:
 
     async def schedule(self, source, remote_addr):
         self.remote_addr = remote_addr
-        self._future = source.future = self._loop.create_future()
+        source.future = self._loop.create_future()
 
         self.transport = await self._create_endpoint()
         self.scheduler.add(self.transport, source)
 
-        assert self._future
-        await self._future
+        assert source.future
+        await source.future
 
     def stop(self):
         self.scheduler.unregister(self.transport)
