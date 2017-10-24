@@ -52,9 +52,6 @@ class RTPTimer(aiotimer.Protocol):
                 'payload': payload
             }))
 
-            # if not source.deal_with_technical_debt:
-            #     source.timestamp += source.timeframe
-
         self.streams = {k: v for k, v in self.streams.items()
                         if not v.stopped}
 

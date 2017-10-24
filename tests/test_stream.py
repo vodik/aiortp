@@ -1,5 +1,4 @@
 import aiortp
-import aiortp.dtmf
 import pytest
 
 
@@ -12,7 +11,7 @@ async def test_dtmf_describe(rtp_server, loop):
     rtp_stream_1 = rtp_server.create_new_stream(('127.0.0.1', 16384))
     rtp_stream_2 = rtp_server.create_new_stream(('127.0.0.1', 16386))
 
-    source = aiortp.dtmf.DTMF('12345')
+    source = aiortp.DTMF('12345')
     await rtp_stream_1.schedule(source, remote_addr=('127.0.0.1', 16386))
 
     description = rtp_stream_1.describe()
