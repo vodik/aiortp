@@ -5,6 +5,9 @@ aiortp
 .. image:: https://travis-ci.org/vodik/aiortp.svg?branch=master
     :target: https://travis-ci.org/vodik/aiortp
 
+.. image:: https://codecov.io/gh/vodik/aiortp/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/vodik/aiortp
+
 Very, very pre-alpha software. Buyer beware!
 
 RTP and basic SDP support for AsyncIO written in pure Python/Cython.
