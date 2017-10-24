@@ -82,7 +82,7 @@ class RTPScheduler:
         if not self._timer:
             self._timer, self._protocol = aiotimer.create_timer(
                 lambda: RTPTimer(self.streams),
-                interval=0.1  # self.interval / 0.02
+                interval=self.interval * 0.001
             )
 
     def unregister(self, transport):
