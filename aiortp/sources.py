@@ -4,7 +4,7 @@ import numpy as np
 import pysndfile
 
 from .dtmf import DTMF_MAP
-from .rtp import RTPSource
+from .rtp import RTPSource, RTPPacket
 from .packet import pack_rtpevent
 
 
@@ -36,8 +36,8 @@ class AudioFile(RTPSource):
         chunk = self.media[:self.timeframe]
         self.media = self.media[self.timeframe:]
 
-        result = (self.marked, self.format, self.seq, self.timestamp,
-                  self.ssrc, chunk)
+        result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
+                           self.ssrc, chunk)
         self.timestamp += self.timeframe
         return result
 
@@ -76,8 +76,8 @@ class Tone:
         chunk = self.media[:self.timeframe]
         self.media = self.media[self.timeframe:]
 
-        result = (self.marked, self.format, self.seq, self.timestamp,
-                  self.ssrc, chunk)
+        result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
+                           self.ssrc, chunk)
         self.timestamp += self.timeframe
         return result
 
@@ -132,8 +132,8 @@ class DTMF:
                                'volume': 10,
                                'duration': self.cur_length * 8})
         self.cur_length += 20
-        return (self.marked, self.format, self.seq, self.timestamp,
-                self.ssrc, event)
+        return RTPPacket(self.marked, self.format, self.seq, self.timestamp,
+                         self.ssrc, event)
 
     def stop(self):
         if self._loop and self._future:

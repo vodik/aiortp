@@ -33,7 +33,7 @@ class RTPTimer(aiotimer.Protocol):
     def timer_ticked(self):
         for transport, source in self.streams.items():
             try:
-                (marked, format, seq, timestamp, ssrc, payload) = next(source)
+                packet = next(source)
             except StopIteration:
                 assert self._loop == asyncio.get_event_loop()
                 source.future.set_result(None)
@@ -44,12 +44,12 @@ class RTPTimer(aiotimer.Protocol):
                 'padding': 0,
                 'ext': 0,
                 'csrc.items': 0,
-                'marker': marked,
-                'p_type': format,
-                'seq': seq,
-                'timestamp': timestamp,
-                'ssrc': ssrc,
-                'payload': payload
+                'marker': packet.marked,
+                'p_type': packet.format,
+                'seq': packet.seq,
+                'timestamp': packet.timestamp,
+                'ssrc': packet.ssrc,
+                'payload': packet.payload
             }))
 
         self.streams = {k: v for k, v in self.streams.items()
