@@ -31,8 +31,8 @@ class DTMF:
         self.current = next(self.seq_iter)
         self.cur_length = 0
 
-        self.loop = loop
-        self.future = future
+        self._loop = loop
+        self._future = future
 
         self.format = 101
         self.timeframe = 20
@@ -57,14 +57,8 @@ class DTMF:
         if self.cur_length > self.tone_length:
             self.timestamp += 20  # self.tone_length - 60
             self.cur_length = 0
-            try:
-                self.current = next(self.seq_iter)
-                self.marked = True
-            except StopIteration:
-                self.stopped = True
-                if self.loop and self.future:
-                    self.loop.call_soon_threadsafe(self.future.set_result, True)
-                raise
+            self.current = next(self.seq_iter)
+            self.marked = True
 
         # Last three rtpevent messages should be marked as the end of event
         end = bool(self.cur_length + 60 >= self.tone_length)
@@ -77,6 +71,6 @@ class DTMF:
         return event
 
     def stop(self):
-        if self.loop and self.future:
-            self.loop.call_soon_threadsafe(self.future.cancel)
+        if self._loop and self._future:
+            self._future.cancel()
         self.stopped = True

@@ -11,8 +11,8 @@ class Tone:
         samples = np.array(wave, dtype=np.int16)
         self.media = audioop.lin2ulaw(samples.tobytes(), 2)
 
-        self.loop = loop
-        self.future = future
+        self._loop = loop
+        self._future = future
 
         self.format = 0
         self.timeframe = timeframe
@@ -32,15 +32,9 @@ class Tone:
 
         chunk = self.media[:self.timeframe]
         self.media = self.media[self.timeframe:]
-
-        if not self.media:
-            self.stopped = True
-            if self.loop and self.future:
-                self.loop.call_soon_threadsafe(self.future.set_result, True)
-
         return chunk
 
     def stop(self):
-        if self.loop and self.future:
-            self.loop.call_soon_threadsafe(self.future.cancel)
+        if self._loop and self._future:
+            self._future.cancel()
         self.stopped = True

@@ -36,9 +36,7 @@ class RTPTimer(aiotimer.Protocol):
                 payload = next(source)
             except StopIteration:
                 assert self._loop == asyncio.get_event_loop()
-                self._loop.call_soon_threadsafe(
-                    source.future.set_result, None
-                )
+                source.future.set_result(None)
                 continue
 
             transport.sendto(pack_rtp({
@@ -112,8 +110,8 @@ class RTPStream:
         self.remote_addr = None
         self.stream = None
         self.ptime = ptime
-        self.future = None
-        self.loop = loop or asyncio.get_event_loop()
+        self._future = None
+        self._loop = loop or asyncio.get_event_loop()
 
     def describe(self):
         from .sdp import SDP
@@ -128,8 +126,8 @@ class RTPStream:
 
     async def _create_endpoint(self):
         assert self.remote_addr
-        transport, self.protocol = await self.loop.create_datagram_endpoint(
-            lambda: RTP(self, loop=self.loop),
+        transport, self.protocol = await self._loop.create_datagram_endpoint(
+            lambda: RTP(self, loop=self._loop),
             local_addr=self.local_addr,
             remote_addr=self.remote_addr
         )
@@ -138,7 +136,7 @@ class RTPStream:
 
     async def schedule(self, source, remote_addr):
         self.remote_addr = remote_addr
-        self.future = source.future = self.loop.create_future()
+        self._future = source.future = self._loop.create_future()
 
         self.transport = await self._create_endpoint()
         self.scheduler.add(self.transport, source)
@@ -148,8 +146,8 @@ class RTPStream:
         self.scheduler.unregister(self.transport)
 
     def wait(self):
-        assert self.future
-        return self.future
+        assert self._future
+        return self._future
 
 
 # async def play(self, remote_addr, filename):
