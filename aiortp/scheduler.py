@@ -141,30 +141,3 @@ class RTPStream:
 
     def stop(self):
         self.scheduler.unregister(self.transport)
-
-
-# async def play(self, remote_addr, filename):
-#     rtp_scheduler = aiortp.RTPScheduler()
-#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
-
-#     source = AudioSource(filename)
-#     await rtp_stream.schedule(source)
-#     await rtp_stream.wait()
-
-
-# async def dial(self, remote_addr, sequence):
-#     rtp_scheduler = aiortp.RTPScheduler()
-#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
-
-#     source = DTFMSource(filename)
-#     await rtp_stream.schedule(source)
-#     await rtp_stream.wait()
-
-
-# async def play_tone(self, frequency, amplitude, duration):
-#     rtp_scheduler = aiortp.RTPScheduler()
-#     rtp_stream = rtp_scheduler.create_new_stream(remote_addr)
-
-#     source = DTFMSource(frequency, amplitude, duration)
-#     await rtp_stream.schedule(source)
-#     await rtp_stream.wait()
