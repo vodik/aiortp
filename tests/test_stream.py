@@ -12,13 +12,9 @@ async def test_dtmf_describe(rtp_server, loop):
     rtp_stream_2 = rtp_server.create_new_stream(('127.0.0.1', 16386))
 
     source = aiortp.DTMF('12345')
-    await rtp_stream_1.schedule(source, remote_addr=('127.0.0.1', 16386))
-
     description = rtp_stream_1.describe()
     await rtp_stream_2.negotiate(description)
-    print("---", id(rtp_stream_1.wait()))
-    await rtp_stream_1.wait()
-    print("DONE!")
+    await rtp_stream_1.schedule(source, remote_addr=('127.0.0.1', 16386))
 
     rtp_server._timer.close()
     rtp_stream_1.transport.close()

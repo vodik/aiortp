@@ -56,8 +56,7 @@ class RTPTimer(aiotimer.Protocol):
                         if not v.stopped}
 
     def timer_overrun(self, overruns):
-        print("EVERYTHING IS BROKEN")
-        raise RuntimeError()
+        raise RuntimeError("Timer overrun, everything is broken")
 
 
 class RTPScheduler:
@@ -136,14 +135,12 @@ class RTPStream:
 
         self.transport = await self._create_endpoint()
         self.scheduler.add(self.transport, source)
-        return source
+
+        assert self._future
+        await self._future
 
     def stop(self):
         self.scheduler.unregister(self.transport)
-
-    def wait(self):
-        assert self._future
-        return self._future
 
 
 # async def play(self, remote_addr, filename):
