@@ -4,6 +4,7 @@ import contextlib
 import logging
 import random
 
+import aiortp
 import aiosip
 
 sip_config = {
@@ -18,13 +19,18 @@ sip_config = {
 
 
 async def run_call(peer, duration):
+    scheduler = aiortp.RTPScheduler()
+    stream = scheduler.create_new_stream((sip_config['srv_host'], 49709))
+
     call = await peer.invite(
         from_details=aiosip.Contact.from_header('sip:{}@{}:{}'.format(
             sip_config['user'], sip_config['local_host'],
             sip_config['local_port'])),
         to_details=aiosip.Contact.from_header('sip:666@{}:{}'.format(
             sip_config['srv_host'], sip_config['srv_port'])),
-        password=sip_config['pwd'])
+        password=sip_config['pwd'],
+        headers={'Content-Type': 'application/sdp'},
+        payload=str(stream.describe()))
 
     async with call:
         async def reader():
