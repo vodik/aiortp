@@ -4,6 +4,7 @@ import contextlib
 import logging
 import random
 
+import aiortp
 import aiosip
 
 sip_config = {
@@ -17,31 +18,33 @@ sip_config = {
 }
 
 
-async def run_call(peer, duration):
+async def run_call(peer):
+    audio = aiortp.AudioFile("dialogic-ivr.flac", 8000 // 1000 * 20)
+
+    scheduler = aiortp.RTPScheduler()
+    stream = scheduler.create_new_stream((sip_config['srv_host'], 49709))
+
     call = await peer.invite(
         from_details=aiosip.Contact.from_header('sip:{}@{}:{}'.format(
             sip_config['user'], sip_config['local_host'],
             sip_config['local_port'])),
         to_details=aiosip.Contact.from_header('sip:666@{}:{}'.format(
             sip_config['srv_host'], sip_config['srv_port'])),
-        password=sip_config['pwd'])
+        password=sip_config['pwd'],
+        headers={'Content-Type': 'application/sdp'},
+        payload=str(stream.describe()))
 
     async with call:
-        async def reader():
-            async for msg in call.wait_for_terminate():
-                print("CALL STATUS:", msg.status_code)
+        async for msg in call.wait_for_terminate():
+            print("CALL STATUS:", msg.status_code)
 
-            print("CALL ESTABLISHED")
-            await asyncio.sleep(5)
-            print("GOING AWAY...")
-
-        with contextlib.suppress(asyncio.TimeoutError):
-            await asyncio.wait_for(reader(), timeout=duration)
+        await stream.negotiate(msg.payload)
+        await stream.schedule(audio)
 
     print("CALL TERMINATED")
 
 
-async def start(app, protocol, duration):
+async def start(app, protocol):
     if protocol is aiosip.WS:
         peer = await app.connect(
             'ws://{}:{}'.format(sip_config['srv_host'], sip_config['srv_port']),
@@ -53,25 +56,24 @@ async def start(app, protocol, duration):
             protocol=protocol,
             local_addr=(sip_config['local_host'], sip_config['local_port']))
 
-    await run_call(peer, duration)
+    await run_call(peer)
     await app.close()
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--protocol', default='udp')
-    parser.add_argument('-d', '--duration', type=int, default=5)
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
     app = aiosip.Application(loop=loop)
 
     if args.protocol == 'udp':
-        loop.run_until_complete(start(app, aiosip.UDP, args.duration))
+        loop.run_until_complete(start(app, aiosip.UDP))
     elif args.protocol == 'tcp':
-        loop.run_until_complete(start(app, aiosip.TCP, args.duration))
+        loop.run_until_complete(start(app, aiosip.TCP))
     elif args.protocol == 'ws':
-        loop.run_until_complete(start(app, aiosip.WS, args.duration))
+        loop.run_until_complete(start(app, aiosip.WS))
     else:
         raise RuntimeError("Unsupported protocol: {}".format(args.protocol))
 
