@@ -1,0 +1,7 @@
+[dev-packages]
+cython = "*"
+numpy = "*"
+tox = "*"
+
+[packages]
+"e1839a8" = {path = ".", editable = true}
