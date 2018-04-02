@@ -38,7 +38,9 @@ async def run_call(peer, duration):
                 print("CALL STATUS:", msg.status_code)
 
             print("CALL ESTABLISHED")
-            await asyncio.sleep(5)
+            await stream.negotiate(msg.payload)
+            await stream.schedule(aiortp.AudioFile("dialogic-ivr.flac", 20),
+                                  stream.remote_addr)
             print("GOING AWAY...")
 
         with contextlib.suppress(asyncio.TimeoutError):
