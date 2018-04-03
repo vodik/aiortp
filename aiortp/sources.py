@@ -39,6 +39,7 @@ class AudioFile(RTPSource):
         result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
                            self.ssrc, chunk)
         self.timestamp += self.timeframe
+        self.seq += 1
         return result
 
     def stop(self):
