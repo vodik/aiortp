@@ -37,6 +37,8 @@ async def on_invite(request, message):
         if message.method == 'BYE':
             break
 
+    print(stream.protocol.packets)
+
 
 def start(app, protocol):
     app.loop.run_until_complete(

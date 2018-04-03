@@ -1,4 +1,6 @@
 import asyncio
+import time
+import typing
 import re
 
 import aiotimer
@@ -6,10 +8,15 @@ import aiotimer
 from .packet import pack_rtp
 
 
+class PacketData(typing.NamedTuple):
+    frametime: float
+    packet: bytes
+
+
 class RTP(asyncio.DatagramProtocol):
     def __init__(self, stream, *, loop=None):
         self.stream = stream
-        self.data = bytearray()
+        self.packets = asyncio.Queue()
         self.ready = loop.create_future()
         self.transport = None
 
@@ -18,8 +25,9 @@ class RTP(asyncio.DatagramProtocol):
         self.ready.set_result(self.transport)
 
     def datagram_received(self, data, addr):
-        print("RECEIVING", data)
-        self.data.extend(data)
+        self.packets.put_nowait(
+            PacketData(frametime=time.time(), packet=data)
+        )
 
     def error_received(self, exc):
         print("Error received:", exc)
