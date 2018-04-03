@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 
+import aiortp
 import aiosip
 
 sip_config = {
@@ -16,12 +17,19 @@ sip_config = {
 
 
 async def on_invite(request, message):
+    scheduler = aiortp.RTPScheduler()
+    stream = scheduler.create_new_stream((sip_config['local_ip'], 49711))
+    await stream.negotiate(message.payload)
+
     print('Call ringing!')
     dialog = await request.prepare(status_code=100)
     await dialog.reply(message, status_code=180)
 
-    await asyncio.sleep(3)
-    await dialog.reply(message, status_code=200)
+    await asyncio.sleep(1)
+    await dialog.reply(message,
+                       status_code=200,
+                       headers={'Content-Type': 'application/sdp'},
+                       payload=str(stream.describe()))
     print('Call started!')
 
     async for message in dialog:

@@ -30,15 +30,17 @@ class AudioFile(RTPSource):
         return self
 
     def __next__(self):
+        if not self.media:
+            self.stopped = True
+
         if self.stopped:
             raise StopIteration()
 
-        chunk = self.media[:self.timeframe]
-        self.media = self.media[self.timeframe:]
-
+        self.media, chunk = self.media[self.timeframe:], self.media[:self.timeframe]
         result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
                            self.ssrc, chunk)
         self.timestamp += self.timeframe
+        self.seq += 1
         return result
 
     def stop(self):
@@ -70,6 +72,9 @@ class Tone:
         return self
 
     def __next__(self):
+        if not self.media:
+            self.stopped = True
+
         if self.stopped:
             raise StopIteration()
 
