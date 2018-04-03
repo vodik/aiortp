@@ -37,7 +37,20 @@ async def on_invite(request, message):
         if message.method == 'BYE':
             break
 
-    print(stream.protocol.packets)
+    # print(stream.protocol.packets)
+    from aiortp.stats import StreamStats
+    stats = StreamStats(stream.protocol.packets)
+
+    import numpy as np
+    print("codecs:", stats.codecs)
+    print("duplicates:", stats.duplicates)
+    print("loss:", stats.loss)
+    print("length:", stats.duration.total_seconds())
+    print("max delta:", np.max(stats.deltas))
+    print("mean delta:", np.mean(stats.deltas))
+    print("max jitter:", np.max(stats.jitter))
+    print("mean jitter:", np.mean(stats.jitter))
+    print("rms:", stats.rms)
 
 
 def start(app, protocol):

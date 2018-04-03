@@ -1,22 +1,23 @@
 import asyncio
+from collections import deque
 import time
 import typing
 import re
 
 import aiotimer
 
-from .packet import pack_rtp
+from .packet import pack_rtp, parse_rtp
 
 
 class PacketData(typing.NamedTuple):
     frametime: float
-    packet: bytes
+    packet: typing.Dict[str, typing.Any]
 
 
 class RTP(asyncio.DatagramProtocol):
     def __init__(self, stream, *, loop=None):
         self.stream = stream
-        self.packets = asyncio.Queue()
+        self.packets = deque()
         self.ready = loop.create_future()
         self.transport = None
 
@@ -25,8 +26,9 @@ class RTP(asyncio.DatagramProtocol):
         self.ready.set_result(self.transport)
 
     def datagram_received(self, data, addr):
-        self.packets.put_nowait(
-            PacketData(frametime=time.time(), packet=data)
+        self.packets.append(
+            PacketData(frametime=time.time(),
+                       packet=parse_rtp(data))
         )
 
     def error_received(self, exc):
