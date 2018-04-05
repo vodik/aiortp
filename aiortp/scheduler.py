@@ -49,18 +49,7 @@ class RTPTimer(aiotimer.Protocol):
                 source.future.set_result(None)
                 continue
 
-            transport.sendto(bytes(RTP(
-                version=2,
-                padding=0,
-                ext=0,
-                csrc_items=0,
-                marker=packet.marked,
-                p_type=packet.format,
-                seq=packet.seq,
-                timestamp=packet.timestamp,
-                ssrc=packet.ssrc,
-                payload=packet.payload
-            )))
+            transport.sendto(bytes(packet))
 
         self.streams = {k: v for k, v in self.streams.items()
                         if not v.stopped}

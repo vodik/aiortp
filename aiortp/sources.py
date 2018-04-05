@@ -4,11 +4,10 @@ import numpy as np
 import pysndfile
 
 from .dtmf import DTMF_MAP
-from .rtp import RTPSource, RTPPacket
-from .packet import RTPEvent
+from .packet import RTP, RTPEvent
 
 
-class AudioFile(RTPSource):
+class AudioFile:
     def __init__(self, filename, timeframe, *, loop=None, future=None):
         audio = pysndfile.PySndfile(filename)
         frames = audio.read_frames(dtype=np.int16)
@@ -37,8 +36,8 @@ class AudioFile(RTPSource):
             raise StopIteration()
 
         self.media, chunk = self.media[self.timeframe:], self.media[:self.timeframe]
-        result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
-                           self.ssrc, chunk)
+        result = RTP(marker=self.marked, p_type=self.format, seq=self.seq,
+                     timestamp=self.timestamp, ssrc=self.ssrc, payload=chunk)
         self.timestamp += self.timeframe
         self.seq += 1
         return result
@@ -81,8 +80,8 @@ class Tone:
         chunk = self.media[:self.timeframe]
         self.media = self.media[self.timeframe:]
 
-        result = RTPPacket(self.marked, self.format, self.seq, self.timestamp,
-                           self.ssrc, chunk)
+        result = RTP(marker=self.marked, p_type=self.format, seq=self.seq,
+                     timestamp=self.timestamp, ssrc=self.ssrc, payload=chunk)
         self.timestamp += self.timeframe
         return result
 
@@ -140,8 +139,8 @@ class DTMF:
         )
 
         self.cur_length += 20
-        return RTPPacket(self.marked, self.format, self.seq, self.timestamp,
-                         self.ssrc, event)
+        return RTP(marker=self.marked, p_type=self.format, seq=self.seq,
+                   timestamp=self.timestamp, ssrc=self.ssrc, payload=event)
 
     def stop(self):
         if self._loop and self._future:

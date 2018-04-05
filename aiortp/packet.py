@@ -8,16 +8,16 @@ rtpevent = struct.Struct('!BBH')
 
 
 class RTP(typing.NamedTuple):
-    version: int
-    padding: bool
-    ext: int
-    csrc_items: int
-    marker: bool
-    p_type: int
-    seq: int
-    timestamp: int
-    ssrc: int
-    payload: bytes
+    version: int = 2
+    padding: bool = 0
+    ext: int = 0
+    csrc_items: int = 0
+    marker: bool = 0
+    p_type: int = 0
+    seq: int = 0
+    timestamp: int = 0
+    ssrc: int = 0
+    payload: bytes = b''
 
     @classmethod
     def parse(cls, data):
@@ -47,7 +47,7 @@ class RTP(typing.NamedTuple):
             self.timestamp,
             self.ssrc
         )
-        return b''.join([header, self.payload])
+        return b''.join([header, bytes(self.payload)])
 
 
 class RTPEvent(typing.NamedTuple):
