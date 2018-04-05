@@ -6,7 +6,7 @@ import re
 
 import aiotimer
 
-from .packet import pack_rtp, parse_rtp
+from .packet import RTP, pack_rtp, parse_rtp
 
 
 class PacketData(typing.NamedTuple):
@@ -14,7 +14,7 @@ class PacketData(typing.NamedTuple):
     packet: typing.Dict[str, typing.Any]
 
 
-class RTP(asyncio.DatagramProtocol):
+class RTPProtocol(asyncio.DatagramProtocol):
     def __init__(self, stream, *, loop=None):
         self.stream = stream
         self.packets = deque()
@@ -49,18 +49,18 @@ class RTPTimer(aiotimer.Protocol):
                 source.future.set_result(None)
                 continue
 
-            transport.sendto(pack_rtp({
-                'version': 2,
-                'padding': 0,
-                'ext': 0,
-                'csrc.items': 0,
-                'marker': packet.marked,
-                'p_type': packet.format,
-                'seq': packet.seq,
-                'timestamp': packet.timestamp,
-                'ssrc': packet.ssrc,
-                'payload': packet.payload
-            }))
+            transport.sendto(bytes(RTP(
+                version=2,
+                padding=0,
+                ext=0,
+                csrc_items=0,
+                marker=packet.marked,
+                p_type=packet.format,
+                seq=packet.seq,
+                timestamp=packet.timestamp,
+                ssrc=packet.ssrc,
+                payload=packet.payload
+            )))
 
         self.streams = {k: v for k, v in self.streams.items()
                         if not v.stopped}
@@ -124,7 +124,7 @@ class RTPStream:
     async def _create_endpoint(self):
         assert self.remote_addr
         transport, self.protocol = await self._loop.create_datagram_endpoint(
-            lambda: RTP(self, loop=self._loop),
+            lambda: RTPProtocol(self, loop=self._loop),
             local_addr=self.local_addr,
             remote_addr=self.remote_addr
         )

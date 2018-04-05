@@ -20,7 +20,7 @@ class StreamStats:
         '''Calculates loss (and duplication) in the stream'''
 
         # Initialize with the first expected sequence number
-        stream = [i.packet['seq'] for i in packets]
+        stream = [i.packet.seq for i in packets]
         expected_seq = first = stream[0]
         lost_packets = 0
         duplicates = 0
@@ -75,7 +75,7 @@ class StreamStats:
         self._calc_loss(packets)
 
         timestamps = np.fromiter(
-            (pkt.packet['timestamp'] for pkt in self.packets),
+            (pkt.packet.timestamp for pkt in self.packets),
             np.float
         )
 
@@ -84,7 +84,7 @@ class StreamStats:
             np.float
         )
 
-        codecs = set(pkt.packet['p_type'] for pkt in self.packets)
+        codecs = set(pkt.packet.p_type for pkt in self.packets)
         timedelta = frametimes[-1] - frametimes[0]
         self.deltas = np.diff(frametimes) * 1000
         self.duration = datetime.timedelta(seconds=timedelta)
@@ -104,7 +104,7 @@ class StreamStats:
             # current packet in the sequence
             self.jitter[idx] = last = last + (diff - last) / 16
 
-        raw_audio = b''.join(x.packet['payload'] for x in self.packets)
+        raw_audio = b''.join(x.packet.payload for x in self.packets)
         self.audio = np.fromstring(raw_audio, dtype=np.int8).astype(float)
 
         rms = np.linalg.norm(self.audio) / np.sqrt(self.audio.size)
