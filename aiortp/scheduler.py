@@ -6,7 +6,7 @@ import re
 
 import aiotimer
 
-from .packet import RTP, pack_rtp, parse_rtp
+from .packet import RTP
 
 
 class PacketData(typing.NamedTuple):
@@ -28,7 +28,7 @@ class RTPProtocol(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         self.packets.append(
             PacketData(frametime=time.time(),
-                       packet=parse_rtp(data))
+                       packet=RTP.parse(data))
         )
 
     def error_received(self, exc):

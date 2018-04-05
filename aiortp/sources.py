@@ -5,7 +5,7 @@ import pysndfile
 
 from .dtmf import DTMF_MAP
 from .rtp import RTPSource, RTPPacket
-from .packet import pack_rtpevent
+from .packet import RTPEvent
 
 
 class AudioFile(RTPSource):
@@ -131,11 +131,14 @@ class DTMF:
 
         # Last three rtpevent messages should be marked as the end of event
         end = bool(self.cur_length + 60 >= self.tone_length)
-        event = pack_rtpevent({'event_id': self.current,
-                               'end_of_event': end,
-                               'reserved': 0,
-                               'volume': 10,
-                               'duration': self.cur_length * 8})
+        event = RTPEvent(
+            event_id=self.current,
+            end_of_event=end,
+            reserved=0,
+            volume=10,
+            duration=self.cur_length * 8
+        )
+
         self.cur_length += 20
         return RTPPacket(self.marked, self.format, self.seq, self.timestamp,
                          self.ssrc, event)

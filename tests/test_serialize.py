@@ -1,28 +1,27 @@
 from hypothesis import given
 from hypothesis.strategies import binary
-from aiortp.packet import RTP, rtphdr, pack_rtp, parse_rtp
-from aiortp.packet import rtpevent, pack_rtpevent, parse_rtpevent
+from aiortp.packet import RTP, RTPEvent, rtphdr, rtpevent
 
 
 @given(binary(min_size=rtphdr.size, max_size=rtphdr.size + 1000))
 def test_rtp_decode_inverts_encode(pkt):
-    rtp = parse_rtp(pkt)
-    assert pack_rtp(rtp) == pkt
+    rtp = RTP.parse(pkt)
+    assert bytes(rtp) == pkt
 
 
 @given(binary(min_size=rtpevent.size, max_size=rtpevent.size))
 def test_rtpevent_decode_inverts_encode(pkt):
-    rtpevent = parse_rtpevent(pkt)
-    assert pack_rtpevent(rtpevent) == pkt
+    rtpevent = RTPEvent.parse(pkt)
+    assert bytes(rtpevent) == pkt
 
 
 @given(binary(min_size=rtphdr.size + rtpevent.size,
               max_size=rtphdr.size + rtpevent.size))
 def test_rtpevent_inside_rtp_decode_inverts_encode(pkt):
-    rtp = parse_rtp(pkt)
-    rtpevent = parse_rtpevent(rtp.payload)
+    rtp = RTP.parse(pkt)
+    rtpevent = RTPEvent.parse(rtp.payload)
 
-    assert pkt == pack_rtp(RTP(
+    assert pkt == bytes(RTP(
         version=rtp.version,
         padding=rtp.padding,
         ext=rtp.ext,
@@ -32,5 +31,5 @@ def test_rtpevent_inside_rtp_decode_inverts_encode(pkt):
         seq=rtp.seq,
         timestamp=rtp.timestamp,
         ssrc=rtp.ssrc,
-        payload = pack_rtpevent(rtpevent)
+        payload=bytes(rtpevent)
     ))
