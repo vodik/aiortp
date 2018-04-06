@@ -3,6 +3,7 @@ import itertools
 from aiortp.packet import RTP
 from aiortp.scheduler import PacketData
 from aiortp.stats import JitterBuffer
+import pytest
 
 
 def frametimes(ptime):
@@ -57,3 +58,14 @@ def test_jitter_buffer_detect_loss_and_duplicates():
     assert len(buffer) == 10
     assert buffer.loss == 9 / 20
     assert buffer.duplicates == 10 / 20
+
+
+@pytest.mark.xfail
+def test_jitter_buffer_backwards_data():
+    # Jitter buffer window size is 10, so only generate 10 packets
+    data = reversed([RTP(seq=seq) for seq in range(1, 11)])
+    buffer = build_buffer(data)
+
+    assert len(buffer) == 10
+    assert buffer.loss == 0
+    assert buffer.duplicates == 0
