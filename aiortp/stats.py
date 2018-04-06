@@ -1,24 +1,35 @@
+from collections.abc import Sequence
 import datetime
 import itertools
 import math
 
 import numpy as np
 
+from .dtmf import DTMF_MAP  # noqa
+
 
 RTP_MAX_SEQ = 65535
-
 RTP_PAYLOADS = {0: 'PCMU', 3: 'GSM', 4: 'G723', 8: 'PCMA', 9: 'G722',
                 10: 'L16', 11: 'L16', 13: 'CN', 18: 'G729'}
 
-DTMF_MAP = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6',
-            7: '7', 8: '8', 9: '9', 10: '*', 11: '#', 12: 'A', 13: 'B',
-            14: 'C', 15: 'D', 16: 'F'}
+
+def _calc_jitter(deltas):
+    # J_n = J_{n-1} + \frac{|D| - J_{n-1}}{16}
+    #
+    # Where: J is jitter, D is the difference between the packet time
+    # delta and the RTP timestamp delta n is the current packet in the
+    # sequence
+    jitter = np.empty(deltas.size)
+    last = 0
+
+    for idx, diff in enumerate(deltas):
+        jitter[idx] = last = last + (diff - last) / 16
+
+    return jitter
 
 
-class StreamStats:
-    def _calc_loss(self, packets):
-        '''Calculates loss (and duplication) in the stream'''
-
+class JitterBuffer(Sequence):
+    def __init__(self, packets):
         # Initialize with the first expected sequence number
         stream = [i.packet.seq for i in packets]
         expected_seq = first = stream[0]
@@ -26,11 +37,11 @@ class StreamStats:
         duplicates = 0
         duplicate_mask = []
 
-        def lookahead(sequence, position, window=10):
+        def lookahead(gap, position, window=10):
             '''Look ahead in the stream to spot any late packets'''
             loss = 0
             lookahead_buf = stream[position:position + window]
-            for i in sequence:
+            for i in gap:
                 if i not in lookahead_buf:
                     loss += 1
             return loss
@@ -50,7 +61,7 @@ class StreamStats:
             elif current_seq > expected_seq:
                 # missing sequence numbers detected; Check ahead before
                 # counting as loss
-                gap = list(range(expected_seq, current_seq))
+                gap = range(expected_seq, current_seq)
                 lost_packets += lookahead(gap, position)
                 expected_seq = current_seq + 1
                 duplicate_mask.append(True)
@@ -69,10 +80,21 @@ class StreamStats:
 
         self.duplicates = duplicates / len(packets)
         self.loss = lost_packets / len(packets)
-        self.packets = list(itertools.compress(packets, duplicate_mask))
+        self._data = list(itertools.compress(packets, duplicate_mask))
 
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __len__(self):
+        return len(self._data)
+
+
+class StreamStats:
     def __init__(self, packets):
-        self._calc_loss(packets)
+        self.packets = JitterBuffer(packets)
+
+        codecs = set(pkt.packet.p_type for pkt in self.packets)
+        self.codecs = [RTP_PAYLOADS.get(codec, str(codec)) for codec in codecs]
 
         timestamps = np.fromiter(
             (pkt.packet.timestamp for pkt in self.packets),
@@ -84,25 +106,16 @@ class StreamStats:
             np.float
         )
 
-        codecs = set(pkt.packet.p_type for pkt in self.packets)
         timedelta = frametimes[-1] - frametimes[0]
         self.deltas = np.diff(frametimes) * 1000
         self.duration = datetime.timedelta(seconds=timedelta)
-        self.codecs = [RTP_PAYLOADS.get(codec, str(codec)) for codec in codecs]
         self.sample_rate = 8000
 
-        last = 0
         period = 1 / self.sample_rate
         rtpdeltas = np.diff(timestamps) * period * 1000
         deltas = np.abs(self.deltas - rtpdeltas)
 
-        self.jitter = np.empty(deltas.size)
-        for idx, diff in enumerate(deltas):
-            # J(n) = J(n-1) + (|D| - J(n-1))/16
-            # Where: J is jitter, D is the difference between the
-            # packet time delta and the RTP timestamp delta n is the
-            # current packet in the sequence
-            self.jitter[idx] = last = last + (diff - last) / 16
+        self.jitter = _calc_jitter(deltas)
 
         raw_audio = b''.join(x.packet.payload for x in self.packets)
         self.audio = np.fromstring(raw_audio, dtype=np.int8).astype(float)
@@ -117,3 +130,11 @@ class StreamStats:
     @property
     def has_rfc2833(self):
         return bool(self.rtpevents)
+
+    @property
+    def duplicates(self):
+        return self.packets.duplicates
+
+    @property
+    def loss(self):
+        return self.packets.loss
