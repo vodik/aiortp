@@ -79,6 +79,7 @@ class JitterBuffer(Sequence):
                 expected_seq = 0
 
         self.duplicates = duplicates / len(packets)
+        self.lost = lost_packets
         self.loss = lost_packets / len(packets)
         self._data = list(itertools.compress(packets, duplicate_mask))
 
