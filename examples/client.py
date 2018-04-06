@@ -18,9 +18,7 @@ sip_config = {
 }
 
 
-async def run_call(peer):
-    audio = aiortp.AudioFile("dialogic-ivr.flac", 8000 // 1000 * 20)
-
+async def run_call(peer, audio):
     scheduler = aiortp.RTPScheduler()
     stream = scheduler.create_new_stream((sip_config['srv_host'], 49709))
 
@@ -44,7 +42,7 @@ async def run_call(peer):
     print("CALL TERMINATED")
 
 
-async def start(app, protocol):
+async def start(app, protocol, audiofile):
     if protocol is aiosip.WS:
         peer = await app.connect(
             'ws://{}:{}'.format(sip_config['srv_host'], sip_config['srv_port']),
@@ -56,24 +54,26 @@ async def start(app, protocol):
             protocol=protocol,
             local_addr=(sip_config['local_host'], sip_config['local_port']))
 
-    await run_call(peer)
+    audio = aiortp.AudioFile(audiofile, 8000 // 1000 * 20)
+    await run_call(peer, audio)
     await app.close()
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--protocol', default='udp')
+    parser.add_argument('filename', default='udp')
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
     app = aiosip.Application(loop=loop)
 
     if args.protocol == 'udp':
-        loop.run_until_complete(start(app, aiosip.UDP))
+        loop.run_until_complete(start(app, aiosip.UDP, args.filename))
     elif args.protocol == 'tcp':
-        loop.run_until_complete(start(app, aiosip.TCP))
+        loop.run_until_complete(start(app, aiosip.TCP, args.filename))
     elif args.protocol == 'ws':
-        loop.run_until_complete(start(app, aiosip.WS))
+        loop.run_until_complete(start(app, aiosip.WS, args.filename))
     else:
         raise RuntimeError("Unsupported protocol: {}".format(args.protocol))
 
