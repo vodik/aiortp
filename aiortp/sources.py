@@ -1,7 +1,7 @@
 import audioop
 
 import numpy as np
-import pysndfile
+import sndfile
 
 from .dtmf import DTMF_MAP
 from .packet import RTP, RTPEvent
@@ -9,8 +9,8 @@ from .packet import RTP, RTPEvent
 
 class AudioFile:
     def __init__(self, filename, timeframe, *, loop=None, future=None):
-        audio = pysndfile.PySndfile(filename)
-        frames = audio.read_frames(dtype=np.int16)
+        audio = sndfile.open(filename)
+        frames = audio.read_frames('h')
         self.media = audioop.lin2ulaw(frames.tobytes(), frames.itemsize)
 
         self._loop = loop

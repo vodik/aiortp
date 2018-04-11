@@ -17,7 +17,7 @@ setup(
     install_requires=[
         'aiotimer==0.1.0',
         'numpy',
-        'pysndfile',
+        'sndfile',
     ],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',

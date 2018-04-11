@@ -1,7 +1,7 @@
 [dev-packages]
-cython = "*"
-numpy = "*"
 tox = "*"
 
 [packages]
+numpy = "*"
+sndfile = "*"
 "e1839a8" = {path = ".", editable = true}
