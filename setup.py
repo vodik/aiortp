@@ -6,7 +6,7 @@ long_description=open('README.rst', encoding='utf-8').read()
 
 setup(
     name='aiortp',
-    version='0.0.1',
+    version='0.0.2',
     author='Simon Gomizelj',
     author_email='simon@vodik.xyz',
     packages=find_packages(),
