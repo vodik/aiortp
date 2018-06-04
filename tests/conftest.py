@@ -18,10 +18,6 @@ except ImportError:  # pragma: no cover
     tokio = None
 
 
-LOOP_FACTORIES = []
-LOOP_FACTORY_IDS = []
-
-
 def pytest_addoption(parser):
     parser.addoption(
         '--fast', action='store_true', default=False,
@@ -52,12 +48,19 @@ def setup_test_loop(loop_factory=asyncio.new_event_loop):
     with the loop.
     """
     loop = loop_factory()
+    try:
+        module = loop.__class__.__module
+        skip_watcher = 'uvloop' in module
+    except AttributeError:
+        # Just in case
+        skip_watcher = True
     asyncio.set_event_loop(loop)
-    if sys.platform != "win32":
+    if sys.platform != 'win32' and not skip_watcher:
         policy = asyncio.get_event_loop_policy()
         watcher = asyncio.SafeChildWatcher()
         watcher.attach_loop(loop)
-        policy.set_child_watcher(watcher)
+        with contextlib.suppress(NotImplementedError):
+            policy.set_child_watcher(watcher)
     return loop
 
 
@@ -75,34 +78,36 @@ def teardown_test_loop(loop, fast=False):
     asyncio.set_event_loop(None)
 
 
-def pytest_configure(config):
-    loops = config.getoption('--loop')
+def pytest_generate_tests(metafunc):
+    if 'loop_factory' not in metafunc.fixturenames:
+        return
 
-    factories = {'pyloop': asyncio.new_event_loop}
+    loops = metafunc.config.getoption('--loop')
+    avail_factories = {'pyloop': asyncio.DefaultEventLoopPolicy}
 
     if uvloop is not None:  # pragma: no cover
-        factories['uvloop'] = uvloop.new_event_loop
+        avail_factories['uvloop'] = uvloop.EventLoopPolicy
 
     if tokio is not None:  # pragma: no cover
-        factories['tokio'] = tokio.new_event_loop
-
-    LOOP_FACTORIES.clear()
-    LOOP_FACTORY_IDS.clear()
+        avail_factories['tokio'] = tokio.EventLoopPolicy
 
     if loops == 'all':
         loops = 'pyloop,uvloop?,tokio?'
 
+    factories = {}
     for name in loops.split(','):
         required = not name.endswith('?')
         name = name.strip(' ?')
-        if name in factories:
-            LOOP_FACTORIES.append(factories[name])
-            LOOP_FACTORY_IDS.append(name)
+        if name in avail_factories:
+            factories[name] = avail_factories[name]
         elif required:
             raise ValueError(
-                "Unknown loop '%s', available loops: %s" % (
-                    name, list(factories.keys())))
-    asyncio.set_event_loop(None)
+                'Unknown loop "%s", available loops: %s' % (
+                    name, list(avail_factories.keys())))
+
+    metafunc.parametrize('loop_factory',
+                         list(factories.values()),
+                         ids=list(factories.keys()))
 
 
 def pytest_pycollect_makeitem(collector, name, obj):
@@ -124,13 +129,16 @@ def pytest_pyfunc_call(pyfuncitem):
         return True
 
 
-@pytest.fixture(params=LOOP_FACTORIES, ids=LOOP_FACTORY_IDS)
-def loop(request):
+@pytest.fixture
+def loop(loop_factory, request):
     """Return an instance of the event loop."""
     fast = request.config.getoption('--fast')
     debug = request.config.getoption('--enable-loop-debug')
 
-    with loop_context(request.param, fast=fast) as _loop:
+    policy = loop_factory()
+    asyncio.set_event_loop_policy(policy)
+    with loop_context(fast=fast) as _loop:
         if debug:
             _loop.set_debug(True)  # pragma: no cover
+        asyncio.set_event_loop(_loop)
         yield _loop
