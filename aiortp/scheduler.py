@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 import time
+import logging
 import typing
 import re
 
@@ -9,27 +10,35 @@ import aiotimer
 from .packet import RTP
 
 
+LOG = logging.getLogger(__name__)
+
+
 class PacketData(typing.NamedTuple):
     frametime: float
     packet: typing.Dict[str, typing.Any]
 
 
 class RTPProtocol(asyncio.DatagramProtocol):
-    def __init__(self, stream, *, loop=None):
+    def __init__(self, stream, *, loop):
         self.stream = stream
         self.packets = deque()
         self.ready = loop.create_future()
         self.transport = None
+        self.packet_queue = asyncio.Queue()
+        self._loop = loop
 
     def connection_made(self, transport):
         self.transport = transport
         self.ready.set_result(self.transport)
 
     def datagram_received(self, data, addr):
-        self.packets.append(
-            PacketData(frametime=time.time(),
-                       packet=RTP.parse(data))
-        )
+        packet = PacketData(frametime=time.time(),
+                            packet=RTP.parse(data))
+        self.packets.append(packet)
+        try:
+            self.packet_queue.put_nowait(packet)
+        except Exception:
+            LOG.exception('Failed to queue packet')
 
     def error_received(self, exc):
         print("Error received:", exc)
@@ -104,6 +113,7 @@ class RTPStream:
         return SDP(self.local_addr, self.ptime)
 
     async def negotiate(self, sdp):
+        # TODO: add state-tracking
         _sdp = str(sdp)
         m_header = re.search(r'm=audio (\d+) RTP/AVP', _sdp)
         c_header = re.search(r'c=IN IP4 ([\d.]+)', _sdp)
@@ -131,3 +141,7 @@ class RTPStream:
 
     def stop(self):
         self.scheduler.unregister(self.transport)
+
+    async def packets(self):
+        while True:
+            yield await self.protocol.packet_queue.get()
